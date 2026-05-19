@@ -2,7 +2,7 @@ use soroban_sdk::{contract, contractimpl, Address, Env, IntoVal, String};
 
 use crate::{
     error::ContractError,
-    events::{Approval, Burn, Transfer},
+    events::{Approval, Burn, Mint, Transfer},
     storage::{AllowanceKey, DataKey},
 };
 
@@ -117,6 +117,63 @@ impl SibToken {
 
         Burn {
             from,
+            amount: amount.try_into().unwrap(),
+        }
+        .publish(&env);
+
+        Ok(())
+    }
+    //assignment: implement burn_from function
+    pub fn burn_from(
+        env: Env,
+        spender: Address,
+        from: Address,
+        amount: i128,
+    ) -> Result<(), ContractError> {
+        spender.require_auth();
+        let from_balance = Self::balance(env.clone(), from.clone());
+
+        if from_balance < amount {
+            return Err(ContractError::InsufficientFunds);
+        }
+
+        let allowance = Self::allowance(env.clone(), from.clone(), spender.clone());
+
+        if allowance < amount {
+            return Err(ContractError::InsufficientAllowance);
+        }
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(from.clone()), &(from_balance - amount));
+
+        env.storage().persistent().set(
+            &DataKey::Allowance(AllowanceKey {
+                from: from.clone(),
+                spender: spender.clone(),
+            }),
+            &(allowance - amount),
+        );
+
+        Burn {
+            from,
+            amount: amount.try_into().unwrap(),
+        }
+        .publish(&env);
+
+        Ok(())
+    }
+    //assignment: implement mint function
+    pub fn mint(env: Env, to: Address, amount: i128) -> Result<(), ContractError> {
+        to.require_auth();
+        let to_balance = Self::balance(env.clone(), to.clone());
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(to.clone()), &(to_balance + amount));
+
+        Mint {
+            to,
             amount: amount.try_into().unwrap(),
         }
         .publish(&env);

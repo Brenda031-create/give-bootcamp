@@ -4,7 +4,7 @@ use soroban_sdk::{testutils::Address as _, Address, Env, String};
 
 use crate::{
     our_token::{SibToken, SibTokenClient},
-    storage::DataKey,
+    storage::{AllowanceKey, DataKey},
 };
 struct SetUpResult<'a> {
     env: Env,
@@ -88,4 +88,49 @@ fn test_burn() {
 
     let balance = setup_result.client.balance(&setup_result.sender);
     assert_eq!(balance, 500);
+}
+#[test]
+fn test_burn_from() {
+    let setup_result = setup();
+
+    setup_result.env.mock_all_auths();
+
+    setup_result.env.as_contract(&setup_result.contract_id, || {
+        setup_result
+            .env
+            .storage()
+            .persistent()
+            .set(&DataKey::Balance(setup_result.sender.clone()), &1000i128);
+
+        setup_result.env.storage().persistent().set(
+            &DataKey::Allowance(AllowanceKey {
+                from: setup_result.sender.clone(),
+                spender: setup_result.receiver.clone(),
+            }),
+            &700i128,
+        );
+    });
+
+    setup_result
+        .client
+        .burn_from(&setup_result.receiver, &setup_result.sender, &500);
+
+    let sender_balance = setup_result.client.balance(&setup_result.sender);
+    let remaining_allowance = setup_result
+        .client
+        .allowance(&setup_result.sender, &setup_result.receiver);
+
+    assert_eq!(sender_balance, 500);
+    assert_eq!(remaining_allowance, 200);
+}
+#[test]
+fn test_mint() {
+    let setup_result = setup();
+
+    setup_result.env.mock_all_auths();
+
+    setup_result.client.mint(&setup_result.receiver, &1000);
+
+    let balance = setup_result.client.balance(&setup_result.receiver);
+    assert_eq!(balance, 1000);
 }

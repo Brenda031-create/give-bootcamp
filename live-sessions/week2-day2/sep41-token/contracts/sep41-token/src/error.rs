@@ -4,4 +4,5 @@ use soroban_sdk::contracterror;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ContractError {
     InsufficientFunds = 1,
+    InsufficientAllowance = 2,
 }
