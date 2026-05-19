@@ -66,6 +66,31 @@ fn test_update_todo() {
 
 // #[test]
 // fn test_mark_completed
+#[test]
+fn test_mark_is_completed(){
+   let setup_result = setup();
+
+    let title = String::from_str(&setup_result.env, "stellar impact bootcamp");
+
+    let description = String::from_str(&setup_result.env, "soroban smartcontract");
+
+    let todo_creation = setup_result.client.create_todo(&title, &description);
+
+    let id = todo_creation.id;
+
+    let mark_todo_call = setup_result.client.mark_is_completed(&id);
+
+    assert!(mark_todo_call, "failed to mark todo as completed");
+
+    let todos = setup_result.client.get_todos();
+
+    let completed_todo = todos.get(0).unwrap();
+
+    assert_eq!(completed_todo.title, title);
+    assert_eq!(completed_todo.description, description);
+    assert_eq!(completed_todo.is_completed, true);
+
+}
 
 // #[test]
 // fn test_delete_todo

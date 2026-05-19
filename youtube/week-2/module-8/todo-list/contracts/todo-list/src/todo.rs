@@ -79,5 +79,24 @@ impl TodoList {
     }
 
     // pub fn mark_is_completed()-> bool;
+    pub fn mark_is_completed(env: &Env, id: u32) -> bool {
+        let mut todos = Self::get_todos(env);
+
+        for i in 0..todos.len() {
+            let mut todo = todos.get(i).unwrap();
+
+            if todo.id == id {
+                todo.is_completed = true;
+
+                todos.set(i, todo);
+
+                env.storage().temporary().set(&TODOS, &todos);
+
+                return true;
+            }
+        }
+
+        false
+    }
     // pub delete_todo()->bool;
 }
