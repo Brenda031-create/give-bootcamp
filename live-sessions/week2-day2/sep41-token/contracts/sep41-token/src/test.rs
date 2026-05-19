@@ -2,10 +2,14 @@
 
 use soroban_sdk::{testutils::Address as _, Address, Env, String};
 
-use crate::our_token::{SibToken, SibTokenClient};
+use crate::{
+    our_token::{SibToken, SibTokenClient},
+    storage::DataKey,
+};
 struct SetUpResult<'a> {
     env: Env,
     client: SibTokenClient<'a>,
+    contract_id: Address,
     sender: Address,
     receiver: Address,
 }
@@ -24,6 +28,7 @@ fn setup<'a>() -> SetUpResult<'a> {
     SetUpResult {
         env,
         client,
+        contract_id,
         sender,
         receiver,
     }
@@ -63,4 +68,24 @@ fn test_decimal() {
 #[test]
 fn test_transfer() {
     let setup_result = setup();
+}
+//assignment: implement burn test
+#[test]
+fn test_burn() {
+    let setup_result = setup();
+
+    setup_result.env.mock_all_auths();
+
+    setup_result.env.as_contract(&setup_result.contract_id, || {
+        setup_result
+            .env
+            .storage()
+            .persistent()
+            .set(&DataKey::Balance(setup_result.sender.clone()), &1000i128);
+    });
+
+    setup_result.client.burn(&setup_result.sender, &500);
+
+    let balance = setup_result.client.balance(&setup_result.sender);
+    assert_eq!(balance, 500);
 }

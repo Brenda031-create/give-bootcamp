@@ -2,7 +2,7 @@ use soroban_sdk::{contract, contractimpl, Address, Env, IntoVal, String};
 
 use crate::{
     error::ContractError,
-    events::{Approval, Transfer},
+    events::{Approval, Burn, Transfer},
     storage::{AllowanceKey, DataKey},
 };
 
@@ -101,5 +101,26 @@ impl SibToken {
 
     pub fn symbol(env: Env) -> String {
         String::from_str(&env, "SIB")
+    }
+    //assignment: implement burn function
+    pub fn burn(env: Env, from: Address, amount: i128) -> Result<(), ContractError> {
+        from.require_auth();
+        let from_balance = Self::balance(env.clone(), from.clone());
+
+        if from_balance < amount {
+            return Err(ContractError::InsufficientFunds);
+        }
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(from.clone()), &(from_balance - amount));
+
+        Burn {
+            from,
+            amount: amount.try_into().unwrap(),
+        }
+        .publish(&env);
+
+        Ok(())
     }
 }

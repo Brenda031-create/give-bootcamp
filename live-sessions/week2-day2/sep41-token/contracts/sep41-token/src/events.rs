@@ -20,3 +20,11 @@ pub struct Approval {
     pub amount: u32,
     pub live_until_ledger: u32,
 }
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Burn {
+    #[topic]
+    pub from: Address,
+    pub amount: u32,
+}
