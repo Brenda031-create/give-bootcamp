@@ -99,4 +99,21 @@ impl TodoList {
         false
     }
     // pub delete_todo()->bool;
+    pub fn delete_todo(env: &Env, id: u32) -> bool {
+        let mut todos = Self::get_todos(env);
+
+        for i in 0..todos.len() {
+            let todo = todos.get(i).unwrap();
+
+            if todo.id == id {
+                todos.remove(i);
+
+                env.storage().temporary().set(&TODOS, &todos);
+
+                return true;
+            }
+        }
+
+        false
+    }
 }

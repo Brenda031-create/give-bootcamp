@@ -94,3 +94,23 @@ fn test_mark_is_completed(){
 
 // #[test]
 // fn test_delete_todo
+#[test]
+fn test_delete_todo(){
+   let setup_result = setup();
+
+    let title = String::from_str(&setup_result.env, "stellar impact bootcamp");
+
+    let description = String::from_str(&setup_result.env, "soroban smartcontract");
+
+    let todo_creation = setup_result.client.create_todo(&title, &description);
+
+    let id = todo_creation.id;
+
+    let delete_todo_call = setup_result.client.delete_todo(&id);
+
+    assert!(delete_todo_call, "failed to delete todo");
+
+    let todos = setup_result.client.get_todos();
+
+    assert_eq!(todos.len(), 0);
+}
