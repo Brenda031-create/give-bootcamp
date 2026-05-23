@@ -180,4 +180,52 @@ impl SibToken {
 
         Ok(())
     }
+    //assignment: implement transfer_from function
+    pub fn transfer_from(
+        env: Env,
+        spender: Address,
+        from: Address,
+        to: Address,
+        amount: i128,
+    ) -> Result<(), ContractError> {
+        spender.require_auth();
+        let from_balance = Self::balance(env.clone(), from.clone());
+
+        if from_balance < amount {
+            return Err(ContractError::InsufficientFunds);
+        }
+
+        let allowance = Self::allowance(env.clone(), from.clone(), spender.clone());
+
+        if allowance < amount {
+            return Err(ContractError::InsufficientAllowance);
+        }
+
+        let to_balance = Self::balance(env.clone(), to.clone());
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(from.clone()), &(from_balance - amount));
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(to.clone()), &(to_balance + amount));
+
+        env.storage().persistent().set(
+            &DataKey::Allowance(AllowanceKey {
+                from: from.clone(),
+                spender: spender.clone(),
+            }),
+            &(allowance - amount),
+        );
+
+        Transfer {
+            from,
+            to,
+            amount: amount.try_into().unwrap(),
+        }
+        .publish(&env);
+
+        Ok(())
+    }
 }

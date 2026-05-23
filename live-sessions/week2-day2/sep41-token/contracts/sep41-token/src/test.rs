@@ -134,3 +134,46 @@ fn test_mint() {
     let balance = setup_result.client.balance(&setup_result.receiver);
     assert_eq!(balance, 1000);
 }
+//assignment: implement transfer_from test
+#[test]
+fn test_transfer_from() {
+    let setup_result = setup();
+//automatically approve all auth checks
+    setup_result.env.mock_all_auths();
+//setting sender balance
+    setup_result.env.as_contract(&setup_result.contract_id, || {
+        setup_result
+            .env
+            .storage()
+            .persistent()
+            .set(&DataKey::Balance(setup_result.sender.clone()), &1000i128);
+//setting allowance
+        setup_result.env.storage().persistent().set(
+            &DataKey::Allowance(AllowanceKey {
+                from: setup_result.sender.clone(),
+                spender: setup_result.receiver.clone(),
+            }),
+            &700i128,
+        );
+    });
+//call transfer_from function
+    setup_result
+        .client
+        .transfer_from(
+            &setup_result.receiver,
+            &setup_result.sender,
+            &setup_result.receiver,
+            &500,
+        );
+//read sender balance
+    let sender_balance = setup_result.client.balance(&setup_result.sender);
+    //read receiver balance
+    let receiver_balance = setup_result.client.balance(&setup_result.receiver);
+    let remaining_allowance = setup_result
+        .client
+        .allowance(&setup_result.sender, &setup_result.receiver);
+
+    assert_eq!(sender_balance, 500);
+    assert_eq!(receiver_balance, 500);
+    assert_eq!(remaining_allowance, 200);
+}

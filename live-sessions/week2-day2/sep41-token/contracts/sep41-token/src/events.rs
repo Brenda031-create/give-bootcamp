@@ -44,3 +44,12 @@ pub struct Mint {
     pub to: Address,
     pub amount: u32,
 }
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Transfer_From {
+    #[topic]
+    pub from: Address,
+    #[topic]
+    pub to: Address,
+    pub amount: u128,
+}
