@@ -97,6 +97,46 @@ fn test_mark_is_completed(){
 #[test]
 fn test_delete_todo(){
    let setup_result = setup();
+#[test]
+fn test_delete_todo() {
+    let setup_result = setup();
+
+    let title = String::from_str(&setup_result.env, "stellar impact bootcamp");
+
+    let description = String::from_str(&setup_result.env, "soroban smartcontract");
+
+    let todo_creation = setup_result.client.create_todo(&title, &description);
+
+    let new_title = String::from_str(&setup_result.env, "stellar impact bootcamp wk2");
+
+    let new_description = String::from_str(&setup_result.env, "soroban smartcontract wk2");
+
+    let id = todo_creation.id;
+
+    let update_todo_call = setup_result
+        .client
+        .update_todo(&id, &new_title, &new_description);
+
+    assert!(update_todo_call, "failed to update");
+
+    let todos = setup_result.client.get_todos();
+
+    let updated_todo = todos.get(0).unwrap();
+
+    assert_eq!(updated_todo.title, new_title);
+    assert_eq!(updated_todo.description, new_description);
+
+    let deleted_todo = setup_result.client.delete_todo(&id);
+
+    let todos_ = setup_result.client.get_todos();
+
+    assert!(deleted_todo);
+    assert!(todos_.is_empty());
+}
+
+#[test]
+fn test_mark_completed() {
+    let setup_result = setup();
 
     let title = String::from_str(&setup_result.env, "stellar impact bootcamp");
 
@@ -113,4 +153,32 @@ fn test_delete_todo(){
     let todos = setup_result.client.get_todos();
 
     assert_eq!(todos.len(), 0);
+}
+    let new_title = String::from_str(&setup_result.env, "stellar impact bootcamp wk2");
+
+    let new_description = String::from_str(&setup_result.env, "soroban smartcontract wk2");
+
+    let id = todo_creation.id;
+
+    let update_todo_call = setup_result
+        .client
+        .update_todo(&id, &new_title, &new_description);
+
+    assert!(update_todo_call, "failed to update");
+
+    let todos = setup_result.client.get_todos();
+
+    let updated_todo = todos.get(0).unwrap();
+
+    assert_eq!(updated_todo.title, new_title);
+    assert_eq!(updated_todo.description, new_description);
+
+    let completed_todo = setup_result.client.mark_is_completed(&id);
+    assert!(completed_todo);
+
+    let marked_todos = setup_result.client.get_todos();
+
+    let mark = marked_todos.get(0).unwrap();
+
+    assert!(mark.is_completed);
 }

@@ -1,0 +1,5 @@
+⚠️ `stellar contract install` is deprecated and will be removed in future versions of the CLI. Use `stellar contract upload` instead.
+ℹ️ Simulating install transaction…
+ℹ️ Signing transaction: e8cdeeffff224f6f21d9ad0f06de25380942d9fd196552797f16e0b4908848d0
+🌎 Submitting install transaction…
+c90f68b34e959df36e94fefd690465772eb19bf5c56359f353b23e61c56b42cc
