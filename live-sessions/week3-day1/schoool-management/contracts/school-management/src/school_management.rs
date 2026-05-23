@@ -1,10 +1,12 @@
 use core::panic;
 
-use soroban_sdk::{contract, contractimpl, token, Address, Env, String, Vec};
+use soroban_sdk::{
+    contract, contractimpl, token, Address, Env, String, Vec,
+};
 
 use crate::{
     error::ContractError,
-    events::PaymentEvent,
+    events::{PaymentEvent, StudentRegisteredEvent},
     storage::{Class, DataKey, Payment, StudentDetails},
 };
 
@@ -19,13 +21,18 @@ impl SchoolManagement {
         }
 
         admin.require_auth();
-
-        env.storage().instance().set(&DataKey::Admin, &admin);
+               env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Token, &token);
         env.storage().instance().set(&DataKey::StudentCount, &0u64);
     }
 
-    pub fn register_student(
+    // HELPER FUNCTION to Ensures only the admin can perform certain actions.
+    fn require_admin(env: &Env) {
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+
+        admin.require_auth();
+    }
+   pub fn register_student(
         env: &Env,
         student_wallet: Address,
         name: String,
@@ -40,11 +47,10 @@ impl SchoolManagement {
             .unwrap();
 
         count += 1;
-
         let student = StudentDetails {
             student_id: count,
             name,
-            wallet_address: student_wallet,
+            wallet_address: student_wallet.clone(),
             class_name,
             total_paid: 0,
             is_registered: true,
@@ -55,12 +61,18 @@ impl SchoolManagement {
             .set(&DataKey::Student(count), &student);
 
         let payments: Vec<Payment> = Vec::new(env);
-
-        env.storage()
+ env.storage()
             .persistent()
             .set(&DataKey::StudentPayments(count), &payments);
 
         env.storage().instance().set(&DataKey::StudentCount, &count);
+
+        //Emit an event after successful registration.
+        StudentRegisteredEvent {
+            student_id: count,
+            wallet: student_wallet,
+        }
+        .publish(env);
 
         count
     }
@@ -72,12 +84,53 @@ impl SchoolManagement {
             .unwrap()
     }
 
-    pub fn make_payment(env: &Env, student_id: u64, amount: i128) -> Result<(), ContractError> {
+    //FUNCTION to Returns all payment records belonging to a student.
+    pub fn get_student_payments(env: &Env, student_id: u64) -> Vec<Payment> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::StudentPayments(student_id))
+            .unwrap()
+    }
+     //FUNCTION Allows the admin to update a student's class.
+    pub fn update_student_class(
+        env: &Env,
+        student_id: u64,
+        new_class: Class,
+    ) {
+        Self::require_admin(env);
+
+        let mut student = Self::get_student(env, student_id);
+
+        student.class_name = new_class;
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Student(student_id), &student);
+    }
+    // FUNCTION Allows the admin to deactivate a student.
+    // The student remains in storage but can no longer make payments.
+    pub fn deactivate_student(env: &Env, student_id: u64) {
+        Self::require_admin(env);
+
+        let mut student = Self::get_student(env, student_id);
+
+        student.is_registered = false;
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Student(student_id), &student);
+    }
+pub fn make_payment(env: &Env, student_id: u64, amount: i128) -> Result<(), ContractError> {
         if amount <= 0 {
             return Err(ContractError::InsufficientFunds);
         }
 
         let mut student: StudentDetails = Self::get_student(env, student_id);
+
+        //VALIDATION to Prevent payments from deactivated students.
+        if !student.is_registered {
+            return Err(ContractError::StudentNotRegistered);
+        }
 
         student.wallet_address.require_auth();
 
@@ -96,7 +149,7 @@ impl SchoolManagement {
             .persistent()
             .get(&DataKey::StudentPayments(student_id))
             .unwrap();
-
+       
         let payment = Payment {
             student_id,
             amount,
@@ -112,7 +165,7 @@ impl SchoolManagement {
         env.storage()
             .persistent()
             .set(&DataKey::Student(student_id), &student);
-
+ 
         PaymentEvent {
             wallet_address: student.wallet_address,
             student_id,

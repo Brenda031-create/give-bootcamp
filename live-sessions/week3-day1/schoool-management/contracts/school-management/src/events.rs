@@ -8,3 +8,11 @@ pub struct PaymentEvent {
     pub student_id: u64,
     pub amount: u32,
 }
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StudentRegisteredEvent {
+    pub student_id: u64,
+    #[topic]
+    pub wallet: Address,
+}

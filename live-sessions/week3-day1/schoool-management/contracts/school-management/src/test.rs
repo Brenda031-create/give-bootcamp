@@ -17,7 +17,6 @@ fn create_token_contract<'a>(
         token::StellarAssetClient::new(env, &contract_id.address()),
     )
 }
-
 struct SetUpResult<'a> {
     env: Env,
     client: SchoolManagementClient<'a>,
@@ -25,7 +24,6 @@ struct SetUpResult<'a> {
     usdc_asset: Address,
     token_client: token::StellarAssetClient<'a>,
 }
-
 fn setup<'a>() -> SetUpResult<'a> {
     let env = Env::default();
 
@@ -40,8 +38,7 @@ fn setup<'a>() -> SetUpResult<'a> {
     let client = SchoolManagementClient::new(&env, &contract_id);
 
     let student_wallet = Address::generate(&env);
-
-    SetUpResult {
+        SetUpResult {
         env,
         client,
         student_wallet,
@@ -49,7 +46,6 @@ fn setup<'a>() -> SetUpResult<'a> {
         token_client,
     }
 }
-
 #[test]
 fn test_register_student() {
     let setup_result = setup();
@@ -65,7 +61,6 @@ fn test_register_student() {
 
     assert_eq!(registration_result, 1);
 }
-
 #[test]
 fn test_get_student() {
     let setup_result = setup();
@@ -85,7 +80,6 @@ fn test_get_student() {
     assert_eq!(result.student_id, 1);
     assert_eq!(result.name, name);
 }
-
 #[test]
 fn test_make_payment() {
     let setup_result = setup();
@@ -113,4 +107,83 @@ fn test_make_payment() {
     let student = setup_result.client.get_student(&student_id);
 
     assert_eq!(student.total_paid, amount);
+}
+// TEST that Ensures student payment history is stored correctly.
+#[test]
+fn test_get_student_payments() {
+    let setup_result = setup();
+
+    let name = String::from_str(&setup_result.env, "Sib");
+
+    setup_result.client.register_student(
+        &setup_result.student_wallet,
+        &name,
+        &Class::College,
+    );
+let amount = 1000i128;
+
+    setup_result
+        .token_client
+        .mint(&setup_result.student_wallet, &amount);
+
+    setup_result
+        .client
+        .make_payment(&1, &amount);
+
+    let payments = setup_result
+        .client
+        .get_student_payments(&1);
+
+    assert_eq!(payments.len(), 1);
+    assert_eq!(payments.get(0).unwrap().amount, amount);
+}
+// TEST that Ensures admin can update student class.
+#[test]
+fn test_update_student_class() {
+    let setup_result = setup();
+
+    let name = String::from_str(&setup_result.env, "Sib");
+
+    setup_result.client.register_student(
+        &setup_result.student_wallet,
+        &name,
+        &Class::College,
+    );
+  
+    setup_result
+        .client
+        .update_student_class(&1, &Class::HighSchool);
+
+    let updated_student = setup_result.client.get_student(&1);
+
+    assert_eq!(updated_student.class_name, Class::HighSchool);
+}
+
+// TEST that Ensures deactivated students cannot pay fees.
+#[test]
+fn test_deactivate_student() {
+    let setup_result = setup();  
+
+    let name = String::from_str(&setup_result.env, "Sib");
+
+    setup_result.client.register_student(
+        &setup_result.student_wallet,
+        &name,
+        &Class::College,
+    );
+
+    setup_result.client.deactivate_student(&1);
+
+    let student = setup_result.client.get_student(&1);
+
+    assert_eq!(student.is_registered, false);
+}
+// TEST to Prevents zero-value payments.
+#[test]
+fn test_payment_with_zero_amount() {
+    let setup_result = setup();
+
+    let result = setup_result.client.try_make_payment(&1, &0);
+
+    assert!(result.is_err());
 }
