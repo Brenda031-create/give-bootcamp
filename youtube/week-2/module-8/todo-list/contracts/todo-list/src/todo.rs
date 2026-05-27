@@ -67,50 +67,6 @@ impl TodoList {
         false
     }
 
-    pub fn delete_todo(env: &Env, id: u32) -> bool {
-        let mut todos = Self::get_todos(env);
-
-        for i in 0..todos.len() {
-            let todo = todos.get(i).unwrap();
-
-            if todo.id == id {
-                todos.remove(i);
-                env.storage().temporary().set(&TODOS, &todos);
-                return true;
-            }
-        }
-
-        false
-    }
-
-    pub fn mark_is_completed(env: &Env, id: u32) -> bool {
-        let mut todos = Self::get_todos(env);
-
-        for i in 0..todos.len() {
-            let mut todo = todos.get(i).unwrap();
-
-            if todo.id == id {
-                todo.is_completed = true;
-                todos.set(i, todo);
-                env.storage().temporary().set(&TODOS, &todos);
-                return true;
-            }
-        }
-
-        false
-    }
-
-    pub fn get_todos(env: &Env) -> Vec<Todo> {
-        env.storage()
-            .temporary()
-            .get(&TODOS)
-            .unwrap_or(Vec::new(env))
-    }
-
-    pub fn get_next_id(env: &Env) -> u32 {
-        env.storage().temporary().get(&NEXT_ID).unwrap_or(1)
-    }
-
     // pub fn mark_is_completed()-> bool;
     pub fn mark_is_completed(env: &Env, id: u32) -> bool {
         let mut todos = Self::get_todos(env);
@@ -130,6 +86,16 @@ impl TodoList {
         }
 
         false
+    }
+    pub fn get_todos(env: &Env) -> Vec<Todo> {
+        env.storage()
+            .temporary()
+            .get(&TODOS)
+            .unwrap_or(Vec::new(env))
+    }
+
+    pub fn get_next_id(env: &Env) -> u32 {
+        env.storage().temporary().get(&NEXT_ID).unwrap_or(1)
     }
     // pub delete_todo()->bool;
     pub fn delete_todo(env: &Env, id: u32) -> bool {
